@@ -3,6 +3,7 @@
 
 #define LEFT_WHEEL_ID 0x01
 #define RIGHT_WHEEL_ID 0x02
+#define WAIST_ID 0x03
 
 namespace rmdtcp_driver_hardware_interface
 {
@@ -33,20 +34,17 @@ namespace rmdtcp_driver_hardware_interface
 
         registerInterface(&jnt_vel_interface);
 
-
         tcp_client = new async_comm::TCPClient("localhost", 16140);
-        tcp_client.register_receive_callback(std::bind(&RMDTCP_Driver::tcp_callback, this, std::placeholders::_1, std::placeholders::_2));
-        if (!tcp_client.init())
+        tcp_client->register_receive_callback(std::bind(&RMDTCP_Driver::tcp_callback, this, std::placeholders::_1, std::placeholders::_2));
+        if (!tcp_client->init())
         {
             std::cout << "Failed to initialize TCP client" << std::endl;
-            return 1;
+            return;
         }
-
-
     }
     
     RMDTCP_Driver::~RMDTCP_Driver(){
-        tcp_client.close();
+        tcp_client->close();
         delete tcp_client;
     }
 
@@ -56,50 +54,57 @@ namespace rmdtcp_driver_hardware_interface
         int64_t motor_angle_raw;
     } ;
 
-    void callback(const uint8_t* buf, size_t len){
+    void RMDTCP_Driver::tcp_callback(const uint8_t* buf, size_t len){
+        //response_index is update for every i;
         static uint8_t response_index = 0;
         static struct MotorResponse mr;
-        for(int i = 0; i < len; i++) {
+        for(size_t i = 0; i < len; i++) {
             switch(response_index){
                 case 0: { // Header
-                    if(buf[i] == 0x3E){
-                        continue;
+                    if(buf[i] != 0x3E){
+                        ROS_ERROR("Incorrect Header, skip this byte");
                     } else {
-                        ROS_ERROR("Incorrect Header");
+                        response_index = 1;
                     }
                     break;
                 }
                 case 1: { // Command
                     switch(buf[i]){
-                        case 0xA2: {
+                        case 0xA2: {// Speed Control;
                             break;
                         }
                         case 0x92: {
-                            response_mode = 0x92;
+                            mr.response_mode = 0x92;
                             break;
                         }
                         default: {
                             ROS_ERROR("Response not supported");
                         }
                     }
+                    response_index = 2;
                     break;
                 }
                 case 2: { // ID
                     mr.id = buf[i];
+                    response_index = 3;
                 }
                 case 3: { // Data Length 
                     if(buf[i] != 8){
                         ROS_ERROR("Length not supported");
+                    }
+                    else {
+                        response_index = 4;
                     }
                     break;
                 }
                 case 4: { // Frame Header Check
                     if(buf[i] != 0x3E + 0x92 + mr.id + 0x08){
                         ROS_ERROR("Header Checksum Error");
+                    } else {
+                        response_index = 5;
                     }
                     break;
                 }
-                
                 case 5:
                 case 6:
                 case 7:
@@ -109,42 +114,36 @@ namespace rmdtcp_driver_hardware_interface
                 case 11:
                 case 12: { // Angle B1(LSB) to B8
                     // mr.motor_angle_raw
-                    // Check Degree?
-                    // 
-                    if(mr.response_mode == 0x92){
+                    if(mr.response_mode == 0x92){ // Read Multi loop angle mode
+                        // Copy Equation from Datasheet
                         *((uint8_t *) (&mr.motor_angle_raw) + response_index - 5) = buf[i];
+                    } else {
+                        ROS_WARN_STREAM("Unimplemented Response Mode" << mr.response_mode);
                     }
+                    response_index++;
                     break;
                 }
                 case 13: { // B1 - B8 Checksum
                     uint8_t chksum = 0x00;
                     for(int j = 0; j < 8; j++){
+                        // Sum value from the collected data using tricks from Datasheet
                         chksum += *((uint8_t *) (&mr.motor_angle_raw)+j);
                     }
                     if(chksum == buf[i]){
-                        //Record
-                        pos[mr.id] = 
+                        //Record divided by 360 * 600 norm to 2 pi
+                        pos[mr.id] = mr.motor_angle_raw / 216000 * 2 * M_PI;
+                        response_index = 0;
                     } else {
                         ROS_ERROR("Checksum Mismatched");
                     }
+                    response_index = 0;
                     break;
                 }
                 default: {
-                    ROS_ERROR("Unknown State");
+                    ROS_ERROR("Unknown State, reset response_index to zero");
+                    response_index = 0;
                 }
-        }
-        }
-        
-        if(!reading_flag) {
-            switch()
-            if(buf[0] != 0x3E){
-                ROS_ERROR("Incorrect Header Message");
-                return;
-            } else {
-                
             }
-        } else{
-
         }
     }
 
@@ -155,7 +154,7 @@ namespace rmdtcp_driver_hardware_interface
             { 0x3E, 0x92, RIGHT_WHEEL_ID, 0x00, 0x3E + 0x92 + RIGHT_WHEEL_ID }
         };
         for(int i = 0; i < 2; i++){
-            tcp_client.send_bytes(req_ang_frame[i], 5);
+            tcp_client->send_bytes(req_ang_frame[i], 5);
         }
     }
 
@@ -176,7 +175,7 @@ namespace rmdtcp_driver_hardware_interface
             req_spd_cmd_frame[i][7] = *((uint8_t *)(&speedControl[i]) + 2);
             req_spd_cmd_frame[i][8] = *((uint8_t *)(&speedControl[i]) + 3);
             req_spd_cmd_frame[i][9] = req_spd_cmd_frame[i][5] + req_spd_cmd_frame[i][6] + req_spd_cmd_frame[i][7] + req_spd_cmd_frame[i][8];
-            tcp_client.send_bytes(req_spd_cmd_frame[i], 10);
+            tcp_client->send_bytes(req_spd_cmd_frame[i], 10);
         }
     }
 }

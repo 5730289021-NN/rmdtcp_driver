@@ -11,6 +11,7 @@ namespace rmdtcp_driver_hardware_interface{
         ~RMDTCP_Driver();
         void read();
         void write();
+        void tcp_callback(const uint8_t* buf, size_t len);
     private:
         hardware_interface::JointStateInterface jnt_state_interface;
         hardware_interface::PositionJointInterface jnt_pos_interface;
