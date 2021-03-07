@@ -8,6 +8,7 @@ int main()
 
   while (true)
   {
+    const ros::Duration period(1.0);
      driver.read();
      cm.update(driver.get_time(), driver.get_period());
      driver.write();
