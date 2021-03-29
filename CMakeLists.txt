@@ -19,7 +19,7 @@ find_package(catkin REQUIRED
     controller_manager
 )
 
-find_package(async_comm REQUIRED)
+#find_package(async_comm REQUIRED)
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -155,7 +155,6 @@ add_executable(${PROJECT_NAME}_node src/rmdtcp_driver_node.cpp src/rmdtcp_driver
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}_node
   ${catkin_LIBRARIES}
-  ${async_comm_LIBRARIES}
 )
 
 #############
