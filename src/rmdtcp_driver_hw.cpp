@@ -37,36 +37,15 @@ namespace rmdtcp_driver_hardware_interface
 
         registerInterface(&jnt_vel_interface);
 
-        // Network Part
+        // Network Part(connect timeout 3 secs)
         tcp_connect(ip_string, port, std::chrono::seconds(3));
-
-        // ip_address = boost::asio::ip::address::from_string(ip_string, ec);
-        // if (ec.value() != 0) {
-        //     // Provided IP address is invalid. Breaking execution.
-        //     ROS_ERROR_STREAM("Failed to parse the IP address. Error code = " << ec.value() << ". Message: " << ec.message());
-        //     return;
-        // } else {
-        //     ROS_INFO("Parse IP Address Successfully");
-        // }
-
-        
-
-        // socket.connect(endpoint, ec);
-
-        // if (ec.value() != 0) {
-        //     // Provided IP address is invalid. Breaking execution.
-        //     ROS_ERROR_STREAM("Failed to connect. Error code = " << ec.value() << ". Message: " << ec.message());
-        //     return;
-        // } else {
-        //     ROS_INFO("Connected to the Motor Successfully");
-        // }
     }
     
     RMDTCP_Driver::~RMDTCP_Driver(){
         socket.close();
     }
 
-    void RMDTCP_Driver::read(const ros::Time& _time, const ros::Duration& _period){
+    void RMDTCP_Driver::read(){
         //Wheel Multi-loop angle command Request
         static std::vector<uint8_t> req_ang_left_frame = { 0x3E, 0x92, LEFT_WHEEL_ID , 0x00, 0x3E + 0x92 + LEFT_WHEEL_ID };
         static std::vector<uint8_t> req_ang_right_frame = { 0x3E, 0x92, RIGHT_WHEEL_ID, 0x00, 0x3E + 0x92 + RIGHT_WHEEL_ID };
@@ -128,7 +107,7 @@ namespace rmdtcp_driver_hardware_interface
         }
     }
 
-    void RMDTCP_Driver::write(const ros::Time& _time, const ros::Duration& _period){
+    void RMDTCP_Driver::write(){
         //vel is in rad/s, require to convert to (degree/minute) then multiply by 10
         //    rad/s                     dpm          
         //vel ----> [ x180 / PI x 60 ] ----> [ x10 ] ---> cmd
@@ -209,105 +188,4 @@ namespace rmdtcp_driver_hardware_interface
             io_context.run();
         }
     }
-
-
-    // struct MotorResponse {
-    //     uint8_t id;
-    //     uint8_t response_mode;
-    //     int64_t motor_angle_raw;
-    // } ;
-
-    // void RMDTCP_Driver::tcp_callback(const uint8_t* buf, size_t len){
-    //     //response_index is update for every i;
-    //     static uint8_t response_index = 0;
-    //     static struct MotorResponse mr;
-    //     for(size_t i = 0; i < len; i++) {
-    //         switch(response_index){
-    //             case 0: { // Header
-    //                 if(buf[i] != 0x3E){
-    //                     ROS_ERROR("Incorrect Header, skip this byte");
-    //                 } else {
-    //                     response_index = 1;
-    //                 }
-    //                 break;
-    //             }
-    //             case 1: { // Command
-    //                 switch(buf[i]){
-    //                     case 0xA2: {// Speed Control;
-    //                         break;
-    //                     }
-    //                     case 0x92: {
-    //                         mr.response_mode = 0x92;
-    //                         break;
-    //                     }
-    //                     default: {
-    //                         ROS_ERROR("Response not supported");
-    //                     }
-    //                 }
-    //                 response_index = 2;
-    //                 break;
-    //             }
-    //             case 2: { // ID
-    //                 mr.id = buf[i];
-    //                 response_index = 3;
-    //             }
-    //             case 3: { // Data Length 
-    //                 if(buf[i] != 8){
-    //                     ROS_ERROR("Length not supported");
-    //                 }
-    //                 else {
-    //                     response_index = 4;
-    //                 }
-    //                 break;
-    //             }
-    //             case 4: { // Frame Header Check
-    //                 if(buf[i] != 0x3E + 0x92 + mr.id + 0x08){
-    //                     ROS_ERROR("Header Checksum Error");
-    //                 } else {
-    //                     response_index = 5;
-    //                 }
-    //                 break;
-    //             }
-    //             case 5:
-    //             case 6:
-    //             case 7:
-    //             case 8:
-    //             case 9:
-    //             case 10:
-    //             case 11:
-    //             case 12: { // Angle B1(LSB) to B8
-    //                 // mr.motor_angle_raw
-    //                 if(mr.response_mode == 0x92){ // Read Multi loop angle mode
-    //                     // Copy Equation from Datasheet
-    //                     *((uint8_t *) (&mr.motor_angle_raw) + response_index - 5) = buf[i];
-    //                 } else {
-    //                     ROS_WARN_STREAM("Unimplemented Response Mode" << mr.response_mode);
-    //                 }
-    //                 response_index++;
-    //                 break;
-    //             }
-    //             case 13: { // B1 - B8 Checksum
-    //                 uint8_t chksum = 0x00;
-    //                 for(int j = 0; j < 8; j++){
-    //                     // Sum value from the collected data using tricks from Datasheet
-    //                     chksum += *((uint8_t *) (&mr.motor_angle_raw)+j);
-    //                 }
-    //                 if(chksum == buf[i]){
-    //                     //Record divided by 360 * 600 norm to 2 pi
-    //                     pos[mr.id] = mr.motor_angle_raw / 216000 * 2 * M_PI;
-    //                     response_index = 0;
-    //                 } else {
-    //                     ROS_ERROR("Checksum Mismatched");
-    //                 }
-    //                 response_index = 0;
-    //                 break;
-    //             }
-    //             default: {
-    //                 ROS_ERROR("Unknown State, reset response_index to zero");
-    //                 response_index = 0;
-    //             }
-    //         }
-    //     }
-    // }
-
 }

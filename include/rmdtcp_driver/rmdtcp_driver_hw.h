@@ -10,8 +10,8 @@ namespace rmdtcp_driver_hardware_interface{
     public:
         RMDTCP_Driver(std::string _ip, std::string _port);
         ~RMDTCP_Driver();
-        void read(const ros::Time& _time, const ros::Duration& _period) override;
-        void write(const ros::Time& _time, const ros::Duration& _period) override;
+        void read();
+        void write();
 
         ros::Time& get_time() const;
         ros::Duration& get_period() const;
