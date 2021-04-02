@@ -1,6 +1,7 @@
 #include <rmdtcp_driver/rmdtcp_driver_hw.h>
 #include <boost/asio.hpp>
 #include <ros/ros.h>
+#include <algorithm>
 #include <chrono>
 
 #define LEFT_WHEEL_ID 0x01
