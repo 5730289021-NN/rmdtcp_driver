@@ -14,8 +14,8 @@ namespace rmdtcp_driver_hardware_interface
 
         // ROS Control Part
         // connect and register the joint state interface
-        hardware_interface::JointStateHandle state_handle_waist("waist", &pos[0], &vel[0], &eff[0]);
-        jnt_state_interface.registerHandle(state_handle_waist);
+        // hardware_interface::JointStateHandle state_handle_waist("waist", &pos[0], &vel[0], &eff[0]);
+        // jnt_state_interface.registerHandle(state_handle_waist);
 
         hardware_interface::JointStateHandle state_handle_left_wheel("left_wheel", &pos[1], &vel[1], &eff[1]);
         jnt_state_interface.registerHandle(state_handle_left_wheel);

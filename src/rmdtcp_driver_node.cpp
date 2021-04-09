@@ -5,7 +5,7 @@
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "rmdtcp_driver");
-  rmdtcp_driver_hardware_interface::RMDTCP_Driver driver("192.168.16.21", "9001");
+  rmdtcp_driver_hardware_interface::RMDTCP_Driver driver("192.168.1.23", "9001");
   controller_manager::ControllerManager cm(&driver);
   
   ros::AsyncSpinner spinner(1);
