@@ -14,12 +14,16 @@ int main(int argc, char **argv)
   ros::Time prev_time = ros::Time::now();
   ros::Rate rate(10.0);
 
+  ROS_INFO("RMDTCP Server Started");
+
   while (true)
   {
     const ros::Time time = ros::Time::now();
     const ros::Duration period = time - prev_time;
+    ROS_INFO_ONCE("Reading Motor Position");
     driver.read();
     cm.update(time, period);
+    ROS_INFO_ONCE("Writing Motor Velocity");
     driver.write();
     rate.sleep();
   }
