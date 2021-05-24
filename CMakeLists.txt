@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(rmdtcp_driver)
+project(rmd_driver)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -129,7 +129,10 @@ include_directories(
 
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
-  src/rmdtcp_driver_hw.cpp
+  src/rmd_driver_hw.cpp
+  src/rmd_codec.cpp
+  src/uart_driver_hw.cpp
+  src/tcp_driver_hw.cpp
 )
 
 ## Add cmake target dependencies of the library
@@ -140,7 +143,7 @@ add_library(${PROJECT_NAME}
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(${PROJECT_NAME}_node src/rmdtcp_driver_node.cpp src/rmdtcp_driver_hw.cpp)
+add_executable(${PROJECT_NAME}_node src/rmd_driver_node.cpp src/rmd_driver_hw.cpp src/rmd_codec.cpp src/tcp_driver_hw.cpp src/uart_driver_hw.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
