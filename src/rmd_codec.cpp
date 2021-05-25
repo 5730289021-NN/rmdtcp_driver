@@ -43,11 +43,11 @@ namespace rmd_driver_hardware_interface
 
     double RMDCodec::decode_position_response(uint8_t motor_id, uint8_t* input_buffer) {
         int64_t motor_angle = 0; //raw
-        if( input_buffer[0] == 0x3E &&
+        if( //input_buffer[0] == 0x3E &&
             input_buffer[1] == 0x92 &&
             input_buffer[2] == motor_id &&
             input_buffer[3] == 0x08 &&
-            input_buffer[4] == 0xD8 + motor_id)
+            input_buffer[4] == (0xD8 + motor_id))
         {
             *(uint8_t *)(&motor_angle) = input_buffer[5];
             *((uint8_t *)(&motor_angle)+1) = input_buffer[6];
@@ -59,19 +59,25 @@ namespace rmd_driver_hardware_interface
             *((uint8_t *)(&motor_angle)+7) = input_buffer[12];
         }
         else {
-            ROS_ERROR("Wrong data coming from motor");
-            throw "Wrong metainfo on left wheel";
+            ROS_ERROR("Wrong data coming from motor %d %d %d %d %d", 
+            //input_buffer[0] && 0x3E,
+            input_buffer[1] && 0x92,
+            input_buffer[2] && motor_id,
+            input_buffer[3] && 0x08,
+            input_buffer[4] && (0xD8 + motor_id)
+            );
+            throw "Wrong data coming from motor";
         }
         return motor_angle / 216000.0 * 2 * M_PI;
     }
 
     MotorResponse RMDCodec::decode_command_response(uint8_t motor_id, uint8_t* input_buffer) {
         MotorResponse motor_response;
-        if( input_buffer[0] == 0x3E &&
+        if( //input_buffer[0] == 0x3E &&
             input_buffer[1] == 0xA2 &&
             input_buffer[2] == motor_id &&
             input_buffer[3] == 0x07 &&
-            input_buffer[4] == 0xE7 + motor_id) 
+            input_buffer[4] == (0xE7 + motor_id)) 
         {
             *(uint8_t *)(&motor_response.temperature) = input_buffer[5];
             *(uint8_t *)(&motor_response.current) = input_buffer[6];
