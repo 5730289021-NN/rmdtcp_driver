@@ -81,7 +81,7 @@ namespace rmd_driver_hardware_interface
     MotorResponse RMDCodec::decode_command_response(uint8_t motor_id, std::vector<uint8_t>& input_buffer) {
         MotorResponse motor_response;
 
-        //Check header checksum byte
+        //Check header checksum bytes
         if(input_buffer[4] != (0xE7 + motor_id))
         {
             ROS_WARN("Wrong header checksum when decoding command response");
