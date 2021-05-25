@@ -88,6 +88,7 @@ namespace rmd_driver_hardware_interface
         io_context.run_for(timeout);
         // In case of timeout
         if(!io_context.stopped()) {
+            ROS_ERROR("Operation Timeout, Probably no data back drom device.");
             port.close();
             io_context.run();
         }
