@@ -16,7 +16,7 @@ int main(int argc, char **argv)
   rmd_driver_hardware_interface::RMDDriverHW* driver;
 
   #if defined(USE_UART)
-  std::string dev = "/dev/serial/by-path/pci-0000\\:00\\:14.0-usb-0\\:2\\:1.0-port0";
+  std::string dev = "ttyUSB0";//"/dev/serial/by-path/pci-0000\\:00\\:14.0-usb-0\\:2\\:1.0-port0";
   int baud = 115200;
   ROS_INFO("Initializing \"UART\" Mode from device %s with baudrate %d", dev.c_str(), baud);
   driver = new rmd_driver_hardware_interface::UARTDriverHW(dev, 115200);
