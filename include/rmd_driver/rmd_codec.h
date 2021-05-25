@@ -2,6 +2,11 @@
 #include <cstdint>
 #include <vector>
 
+#define CHECKSUM_POS_RES_ZO 216
+#define CHECKSUM_CMD_RES_ZO 231
+#define AMOUNT_POS_DATAFRAME_READ 9 //Including checksum 
+#define AMOUNT_CMD_DATAFRAME_WRITE 8 //Including checksum 
+
 namespace rmd_driver_hardware_interface
 {
     struct MotorResponse{
@@ -15,7 +20,7 @@ namespace rmd_driver_hardware_interface
         public:
             std::vector<uint8_t> encode_command_request(uint8_t motor_id, double cmd);
             std::vector<uint8_t> encode_position_request(uint8_t motor_id);
-            double decode_position_response(uint8_t motor_id, uint8_t* input_buffer);
-            MotorResponse decode_command_response(uint8_t motor_id, uint8_t* input_buffer);
+            double decode_position_response(uint8_t motor_id, std::vector<uint8_t>& input_buffer);
+            MotorResponse decode_command_response(uint8_t motor_id, std::vector<uint8_t>& input_buffer);
     };
 }

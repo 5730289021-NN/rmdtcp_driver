@@ -27,11 +27,28 @@ namespace rmd_driver_hardware_interface
         std::vector<uint8_t> req_ang_right_frame = codec.encode_position_request(RIGHT_WHEEL_ID);
 
         if(port.is_open()) {
-            uart_write(req_ang_left_frame, std::chrono::milliseconds(100)); // Write a request
-            uart_read_amount(14, std::chrono::milliseconds(100)); // data is pushed into input_buffer
+            // Send a multiloop position read request
+            uart_write(req_ang_left_frame, std::chrono::milliseconds(100)); // Write a position read request
+            // Seperate to 2 Reading:
+            // 1. Read until known checksum header match
+            ROS_INFO("Delim %x", CHECKSUM_POS_RES_ZO + LEFT_WHEEL_ID);
+            uart_read_until(CHECKSUM_POS_RES_ZO + LEFT_WHEEL_ID, std::chrono::milliseconds(100));
+            for(size_t i = 0; i < input_buffer.size(); i++) {
+                ROS_INFO("Header %x", input_buffer[i]);
+            }
+            // 1.1 Process header
+
+            // 2. Read until n-byte of "data and checksum data"
+            uart_read_amount(AMOUNT_POS_DATAFRAME_READ, std::chrono::milliseconds(100)); // data is pushed into input_buffer
+            for(size_t i = 0; i < input_buffer.size(); i++) {
+                ROS_INFO("Data %x", input_buffer[i]);
+            }
+            // 2.1 Process data
+            throw "Terminate";
             pos[0] = codec.decode_position_response(LEFT_WHEEL_ID, input_buffer);
 
-            uart_write(req_ang_right_frame, std::chrono::milliseconds(100)); // Write a request
+            uart_write(req_ang_right_frame, std::chrono::milliseconds(100)); // Write a position read request
+            uart_read_until(CHECKSUM_POS_RES_ZO + RIGHT_WHEEL_ID, std::chrono::milliseconds(100));
             uart_read_amount(14, std::chrono::milliseconds(100)); // data is pushed into input_buffer
             pos[1] = codec.decode_position_response(RIGHT_WHEEL_ID, input_buffer);
 
@@ -58,7 +75,7 @@ namespace rmd_driver_hardware_interface
     void UARTDriverHW::uart_read_amount(size_t n_bytes, std::chrono::steady_clock::duration timeout) {
         boost::system::error_code error;
         std::size_t n_transfered;
-        boost::asio::async_read(port, boost::asio::buffer(input_buffer, n_bytes), 
+        boost::asio::async_read(port, boost::asio::dynamic_buffer(input_buffer), 
         [&](const boost::system::error_code& res_error, std::size_t bytes_transferred){
             error = res_error;
             n_transfered = bytes_transferred;
@@ -68,7 +85,40 @@ namespace rmd_driver_hardware_interface
             ROS_ERROR_STREAM("Error while reading" << error.message());
             throw std::system_error(error);
         }
-        return;
+    }
+
+    void UARTDriverHW::uart_read_until(char delim, std::chrono::steady_clock::duration timeout) {
+        boost::system::error_code error;
+        std::size_t n_transfered;
+        boost::asio::async_read_until(port, boost::asio::dynamic_buffer(input_buffer), 
+        [&](const boost::system::error_code& res_error, std::size_t bytes_transferred){
+            error = res_error;
+            n_transfered = bytes_transferred;
+        });
+        run(timeout);
+        if(error) {
+            ROS_ERROR_STREAM("Error while reading" << error.message());
+            throw std::system_error(error);
+        }
+    }
+
+    void UARTDriverHW::uart_read_chunk(char delim, std::chrono::steady_clock::duration timeout) {
+        boost::system::error_code error;
+        std::size_t n_transfered;
+        boost::asio::async_read_until(port, boost::asio::dynamic_buffer(input_buffer),
+        [](iterator begin, iterator end)
+        {
+
+        },
+        [&](const boost::system::error_code& res_error, std::size_t bytes_transferred){
+            error = res_error;
+            n_transfered = bytes_transferred;
+        });
+        run(timeout);
+        if(error) {
+            ROS_ERROR_STREAM("Error while reading" << error.message());
+            throw std::system_error(error);
+        }
     }
 
     void UARTDriverHW::uart_write(std::vector<uint8_t> &message, std::chrono::steady_clock::duration timeout) {

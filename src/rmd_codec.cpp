@@ -41,13 +41,17 @@ namespace rmd_driver_hardware_interface
         return request_frame;
     }
 
-    double RMDCodec::decode_position_response(uint8_t motor_id, uint8_t* input_buffer) {
+    double RMDCodec::decode_position_response(uint8_t motor_id, std::vector<uint8_t>& input_buffer) {
         int64_t motor_angle = 0; //raw
+
+        for(int i = 0; i < 14; i++) {
+            ROS_INFO("%d", input_buffer[i]);
+        }
 
         //Check header checksum byte
         if(input_buffer[4] != (0xD8 + motor_id))
         {
-            ROS_WARN("Wrong header checksum");
+            ROS_WARN("Wrong header checksum when decoding position response byte 4 is %d which should be %d", input_buffer[4], 0xD8 + motor_id);
         }
 
         //Check data checksum byte
@@ -56,8 +60,10 @@ namespace rmd_driver_hardware_interface
             checksum += input_buffer[i];
         }
         if(input_buffer[13] != checksum) {
-            ROS_ERROR("Wrong data checksum");
-            throw std::runtime_error("Wrong data checksum");
+            ROS_ERROR("Wrong data checksum when decoding position response byte 13 is %d which should be %d", input_buffer[13], checksum);
+            throw std::runtime_error("Wrong data checksum when decoding position response");
+        } else{
+            ROS_INFO("Pass Checksum!");
         }
 
         *(uint8_t *)(&motor_angle) = input_buffer[5];
@@ -72,13 +78,13 @@ namespace rmd_driver_hardware_interface
         return motor_angle / 216000.0 * 2 * M_PI;
     }
 
-    MotorResponse RMDCodec::decode_command_response(uint8_t motor_id, uint8_t* input_buffer) {
+    MotorResponse RMDCodec::decode_command_response(uint8_t motor_id, std::vector<uint8_t>& input_buffer) {
         MotorResponse motor_response;
 
         //Check header checksum byte
         if(input_buffer[4] != (0xE7 + motor_id))
         {
-            ROS_WARN("Wrong header checksum");
+            ROS_WARN("Wrong header checksum when decoding command response");
         }
 
         //Check data checksum byte
@@ -89,9 +95,9 @@ namespace rmd_driver_hardware_interface
 
         if(input_buffer[12] != checksum) {
             ROS_ERROR("Wrong data checksum");
-            throw std::runtime_error("Wrong data checksum");
+            throw std::runtime_error("Wrong data checksum when decoding command response");
         }
-        
+
         *(uint8_t *)(&motor_response.temperature) = input_buffer[5];
         *(uint8_t *)(&motor_response.current) = input_buffer[6];
         *((uint8_t *)(&motor_response.current)+1) = input_buffer[7];
