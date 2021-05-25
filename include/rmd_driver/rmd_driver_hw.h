@@ -19,8 +19,10 @@ namespace rmd_driver_hardware_interface{
     class RMDDriverHW : public hardware_interface::RobotHW 
     {
         public:
-            virtual void read();
-            virtual void write();
+            RMDDriverHW();
+            virtual ~RMDDriverHW();
+            virtual void read()=0;
+            virtual void write()=0;
 
         protected:
             RMDCodec codec;

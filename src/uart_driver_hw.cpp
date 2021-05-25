@@ -7,12 +7,14 @@
 namespace rmd_driver_hardware_interface
 {
     UARTDriverHW::UARTDriverHW(std::string _dev_id, int _baud) : dev_id(_dev_id), baud(_baud), port(io_context, _dev_id){
+        //Open implicitly from initialization list
         port.set_option(boost::asio::serial_port_base::baud_rate(baud));
         port.set_option(boost::asio::serial_port_base::character_size(8));
         port.set_option(boost::asio::serial_port_base::flow_control(boost::asio::serial_port_base::flow_control::none));
         port.set_option(boost::asio::serial_port_base::parity(boost::asio::serial_port_base::parity::none));
         port.set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
-        //Open automatically
+        
+        ROS_INFO("Successfully open port");
     }
     
     UARTDriverHW::~UARTDriverHW(){
@@ -34,8 +36,8 @@ namespace rmd_driver_hardware_interface
             pos[1] = codec.decode_position_response(RIGHT_WHEEL_ID, input_buffer);
 
         } else {
-            ROS_ERROR("Socket is not opened yet");
-            throw "Socket is not opened yet";
+            ROS_ERROR("Port is not opened yet");
+            throw "Port is not opened yet";
         }
     }
 
@@ -43,8 +45,8 @@ namespace rmd_driver_hardware_interface
         //vel is in rad/s, require to convert to (degree/minute) then multiply by 10
         //    rad/s                     dpm          
         //vel ----> [ x180 / PI x 60 ] ----> [ x10 ] ---> cmd
-        int32_t speed_control_left = cmd[0] * 180 * 60 * 10 / M_PI;
-        int32_t speed_control_right = cmd[0] * 180 * 60 * 10 / M_PI;
+        // int32_t speed_control_left = cmd[0] * 180 * 60 * 10 / M_PI;
+        // int32_t speed_control_right = cmd[1] * 180 * 60 * 10 / M_PI;
         
         std::vector<uint8_t> req_spd_cmd_frame_left = codec.encode_command_request(LEFT_WHEEL_ID, cmd[0]);
         std::vector<uint8_t> req_spd_cmd_frame_right = codec.encode_command_request(RIGHT_WHEEL_ID, cmd[1]);
@@ -56,7 +58,7 @@ namespace rmd_driver_hardware_interface
     void UARTDriverHW::uart_read_amount(size_t n_bytes, std::chrono::steady_clock::duration timeout) {
         boost::system::error_code error;
         std::size_t n_transfered;
-        boost::asio::async_read(socket, boost::asio::buffer(input_buffer, n_bytes), 
+        boost::asio::async_read(port, boost::asio::buffer(input_buffer, n_bytes), 
         [&](const boost::system::error_code& res_error, std::size_t bytes_transferred){
             error = res_error;
             n_transfered = bytes_transferred;
@@ -71,7 +73,7 @@ namespace rmd_driver_hardware_interface
 
     void UARTDriverHW::uart_write(std::vector<uint8_t> &message, std::chrono::steady_clock::duration timeout) {
         boost::system::error_code error;
-        boost::asio::async_write(socket, boost::asio::buffer(message), 
+        boost::asio::async_write(port, boost::asio::buffer(message), 
         [&](const boost::system::error_code& res_error, std::size_t){
             error = res_error;
         });
