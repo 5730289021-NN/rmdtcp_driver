@@ -43,50 +43,62 @@ namespace rmd_driver_hardware_interface
 
     double RMDCodec::decode_position_response(uint8_t motor_id, uint8_t* input_buffer) {
         int64_t motor_angle = 0; //raw
-        if( //input_buffer[0] == 0x3E &&
-            input_buffer[1] == 0x92 &&
-            input_buffer[2] == motor_id &&
-            input_buffer[3] == 0x08 &&
-            input_buffer[4] == (0xD8 + motor_id))
+
+        //Check header checksum byte
+        if(input_buffer[4] != (0xD8 + motor_id))
         {
-            *(uint8_t *)(&motor_angle) = input_buffer[5];
-            *((uint8_t *)(&motor_angle)+1) = input_buffer[6];
-            *((uint8_t *)(&motor_angle)+2) = input_buffer[7];
-            *((uint8_t *)(&motor_angle)+3) = input_buffer[8];
-            *((uint8_t *)(&motor_angle)+4) = input_buffer[9];
-            *((uint8_t *)(&motor_angle)+5) = input_buffer[10];
-            *((uint8_t *)(&motor_angle)+6) = input_buffer[11];
-            *((uint8_t *)(&motor_angle)+7) = input_buffer[12];
+            ROS_WARN("Wrong header checksum");
         }
-        else {
-            ROS_ERROR("Wrong data coming from motor %d %d %d %d %d", 
-            //input_buffer[0] && 0x3E,
-            input_buffer[1] && 0x92,
-            input_buffer[2] && motor_id,
-            input_buffer[3] && 0x08,
-            input_buffer[4] && (0xD8 + motor_id)
-            );
-            throw "Wrong data coming from motor";
+
+        //Check data checksum byte
+        uint8_t checksum = 0;
+        for(int i = 5; i < 13; i++){
+            checksum += input_buffer[i];
         }
+        if(input_buffer[13] != checksum) {
+            ROS_ERROR("Wrong data checksum");
+            throw std::runtime_error("Wrong data checksum");
+        }
+
+        *(uint8_t *)(&motor_angle) = input_buffer[5];
+        *((uint8_t *)(&motor_angle)+1) = input_buffer[6];
+        *((uint8_t *)(&motor_angle)+2) = input_buffer[7];
+        *((uint8_t *)(&motor_angle)+3) = input_buffer[8];
+        *((uint8_t *)(&motor_angle)+4) = input_buffer[9];
+        *((uint8_t *)(&motor_angle)+5) = input_buffer[10];
+        *((uint8_t *)(&motor_angle)+6) = input_buffer[11];
+        *((uint8_t *)(&motor_angle)+7) = input_buffer[12];
+
         return motor_angle / 216000.0 * 2 * M_PI;
     }
 
     MotorResponse RMDCodec::decode_command_response(uint8_t motor_id, uint8_t* input_buffer) {
         MotorResponse motor_response;
-        if( //input_buffer[0] == 0x3E &&
-            input_buffer[1] == 0xA2 &&
-            input_buffer[2] == motor_id &&
-            input_buffer[3] == 0x07 &&
-            input_buffer[4] == (0xE7 + motor_id)) 
+
+        //Check header checksum byte
+        if(input_buffer[4] != (0xE7 + motor_id))
         {
-            *(uint8_t *)(&motor_response.temperature) = input_buffer[5];
-            *(uint8_t *)(&motor_response.current) = input_buffer[6];
-            *((uint8_t *)(&motor_response.current)+1) = input_buffer[7];
-            *(uint8_t *)(&motor_response.speed) = input_buffer[8];
-            *((uint8_t *)(&motor_response.speed)+1) = input_buffer[9];
-            *(uint8_t *)(&motor_response.encoder) = input_buffer[10];
-            *((uint8_t *)(&motor_response.encoder)+1) = input_buffer[11];
+            ROS_WARN("Wrong header checksum");
         }
+
+        //Check data checksum byte
+        uint8_t checksum = 0;
+        for(int i = 5; i < 12; i++){
+            checksum += input_buffer[i];
+        }
+
+        if(input_buffer[12] != checksum) {
+            ROS_ERROR("Wrong data checksum");
+            throw std::runtime_error("Wrong data checksum");
+        }
+        
+        *(uint8_t *)(&motor_response.temperature) = input_buffer[5];
+        *(uint8_t *)(&motor_response.current) = input_buffer[6];
+        *((uint8_t *)(&motor_response.current)+1) = input_buffer[7];
+        *(uint8_t *)(&motor_response.speed) = input_buffer[8];
+        *((uint8_t *)(&motor_response.speed)+1) = input_buffer[9];
+        *(uint8_t *)(&motor_response.encoder) = input_buffer[10];
+        *((uint8_t *)(&motor_response.encoder)+1) = input_buffer[11];
         
         return motor_response;
     }
