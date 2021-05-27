@@ -2,6 +2,7 @@
 #include <ros/ros.h>
 #include <algorithm>
 #include <chrono>
+#include <numeric>
 
 namespace rmd_driver_hardware_interface
 {
@@ -43,45 +44,41 @@ namespace rmd_driver_hardware_interface
 
     double RMDCodec::decode_position_response(uint8_t motor_id, std::vector<uint8_t>& input_buffer) {
         int64_t motor_angle = 0; //raw
-
-        for(int i = 0; i < 14; i++) {
+        for(size_t i = 0; i < input_buffer.size(); i++) {
             ROS_INFO("%d", input_buffer[i]);
-        }
+            //Assume first byte is the header;
+            if(input_buffer[i] != 0) {
+                if(input_buffer[i] != 0x3E) {
+                    // We don't want to terminate the program when this occur, just warn
+                    ROS_WARN("Error occurred on 1st byte!, should be %x, actual %x", 0x3E, input_buffer);
+                }
+                ROS_ASSERT_MSG(input_buffer[i+1] == 0x92, "Error occurred on 2nd byte!, should be %x, actual %x", 0x92, input_buffer[i]);
+                ROS_ASSERT_MSG(input_buffer[i+2] == motor_id, "Error occurred on 3nd byte!, should be %x, actual %x", motor_id, input_buffer[i]);
+                ROS_ASSERT_MSG(input_buffer[i+3] == 0x08, "Error occurred on 4nd byte!, should be %x, actual %x", 0x08, input_buffer[i]);
+                ROS_ASSERT_MSG(input_buffer[i+4] == CHECKSUM_POS_HEADER_RES_ZO + motor_id, "Error occurred on 4nd byte!, should be %x, actual %x", CHECKSUM_POS_HEADER_RES_ZO + motor_id, input_buffer[i+4]);
+                uint8_t checksum = std::accumulate(input_buffer.begin()+5, input_buffer.begin()+13, 0);
+                ROS_ASSERT_MSG(input_buffer[i+13] == checksum, "Error occurred on data checksum byte!, should be %x, actual %x", checksum, input_buffer[i+13]);
+                
 
-        //Check header checksum byte
-        if(input_buffer[4] != (0xD8 + motor_id))
-        {
-            ROS_WARN("Wrong header checksum when decoding position response byte 4 is %d which should be %d", input_buffer[4], 0xD8 + motor_id);
-        }
+                *(uint8_t *)(&motor_angle) = input_buffer[5];
+                *((uint8_t *)(&motor_angle)+1) = input_buffer[6];
+                *((uint8_t *)(&motor_angle)+2) = input_buffer[7];
+                *((uint8_t *)(&motor_angle)+3) = input_buffer[8];
+                *((uint8_t *)(&motor_angle)+4) = input_buffer[9];
+                *((uint8_t *)(&motor_angle)+5) = input_buffer[10];
+                *((uint8_t *)(&motor_angle)+6) = input_buffer[11];
+                *((uint8_t *)(&motor_angle)+7) = input_buffer[12];
 
-        //Check data checksum byte
-        uint8_t checksum = 0;
-        for(int i = 5; i < 13; i++){
-            checksum += input_buffer[i];
+                return motor_angle / 216000.0 * 2 * M_PI;
+            }
         }
-        if(input_buffer[13] != checksum) {
-            ROS_ERROR("Wrong data checksum when decoding position response byte 13 is %d which should be %d", input_buffer[13], checksum);
-            throw std::runtime_error("Wrong data checksum when decoding position response");
-        } else{
-            ROS_INFO("Pass Checksum!");
-        }
-
-        *(uint8_t *)(&motor_angle) = input_buffer[5];
-        *((uint8_t *)(&motor_angle)+1) = input_buffer[6];
-        *((uint8_t *)(&motor_angle)+2) = input_buffer[7];
-        *((uint8_t *)(&motor_angle)+3) = input_buffer[8];
-        *((uint8_t *)(&motor_angle)+4) = input_buffer[9];
-        *((uint8_t *)(&motor_angle)+5) = input_buffer[10];
-        *((uint8_t *)(&motor_angle)+6) = input_buffer[11];
-        *((uint8_t *)(&motor_angle)+7) = input_buffer[12];
-
-        return motor_angle / 216000.0 * 2 * M_PI;
+        throw std::runtime_error("Unable to track first byte");
     }
 
     MotorResponse RMDCodec::decode_command_response(uint8_t motor_id, std::vector<uint8_t>& input_buffer) {
         MotorResponse motor_response;
 
-        //Check header checksum bytes
+        //Check header checksum byte
         if(input_buffer[4] != (0xE7 + motor_id))
         {
             ROS_WARN("Wrong header checksum when decoding command response");

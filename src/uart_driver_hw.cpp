@@ -31,25 +31,13 @@ namespace rmd_driver_hardware_interface
             uart_write(req_ang_left_frame, std::chrono::milliseconds(100)); // Write a position read request
             // Seperate to 2 Reading:
             // 1. Read until known checksum header match
-            ROS_INFO("Delim %x", CHECKSUM_POS_RES_ZO + LEFT_WHEEL_ID);
-            uart_read_until(CHECKSUM_POS_RES_ZO + LEFT_WHEEL_ID, std::chrono::milliseconds(100));
-            for(size_t i = 0; i < input_buffer.size(); i++) {
-                ROS_INFO("Header %x", input_buffer[i]);
-            }
-            // 1.1 Process header
-
-            // 2. Read until n-byte of "data and checksum data"
-            uart_read_amount(AMOUNT_POS_DATAFRAME_READ, std::chrono::milliseconds(100)); // data is pushed into input_buffer
-            for(size_t i = 0; i < input_buffer.size(); i++) {
-                ROS_INFO("Data %x", input_buffer[i]);
-            }
-            // 2.1 Process data
-            throw "Terminate";
+            ROS_INFO("Delim %x", CHECKSUM_POS_HEADER_RES_ZO + LEFT_WHEEL_ID);
+            uart_read_chunk(AMOUNT_POS_FRAME_RES, std::chrono::milliseconds(100));
             pos[0] = codec.decode_position_response(LEFT_WHEEL_ID, input_buffer);
 
             uart_write(req_ang_right_frame, std::chrono::milliseconds(100)); // Write a position read request
-            uart_read_until(CHECKSUM_POS_RES_ZO + RIGHT_WHEEL_ID, std::chrono::milliseconds(100));
-            uart_read_amount(14, std::chrono::milliseconds(100)); // data is pushed into input_buffer
+            // uart_read_until(CHECKSUM_POS_RES_ZO + RIGHT_WHEEL_ID, std::chrono::milliseconds(100));
+            // uart_read_amount(14, std::chrono::milliseconds(100)); // data is pushed into input_buffer
             pos[1] = codec.decode_position_response(RIGHT_WHEEL_ID, input_buffer);
 
         } else {
@@ -72,48 +60,25 @@ namespace rmd_driver_hardware_interface
         uart_write(req_spd_cmd_frame_right, std::chrono::milliseconds(100));
     }
 
-    void UARTDriverHW::uart_read_amount(size_t n_bytes, std::chrono::steady_clock::duration timeout) {
+    // Read n-byte of chunk excluding leading zero
+    void UARTDriverHW::uart_read_chunk(size_t n_bytes, std::chrono::steady_clock::duration timeout) {
         boost::system::error_code error;
         std::size_t n_transfered;
-        boost::asio::async_read(port, boost::asio::dynamic_buffer(input_buffer), 
-        [&](const boost::system::error_code& res_error, std::size_t bytes_transferred){
-            error = res_error;
-            n_transfered = bytes_transferred;
-        });
-        run(timeout);
-        if(error) {
-            ROS_ERROR_STREAM("Error while reading" << error.message());
-            throw std::system_error(error);
-        }
-    }
-
-    void UARTDriverHW::uart_read_until(char delim, std::chrono::steady_clock::duration timeout) {
-        boost::system::error_code error;
-        std::size_t n_transfered;
-        boost::asio::async_read_until(port, boost::asio::dynamic_buffer(input_buffer), 
-        [&](const boost::system::error_code& res_error, std::size_t bytes_transferred){
-            error = res_error;
-            n_transfered = bytes_transferred;
-        });
-        run(timeout);
-        if(error) {
-            ROS_ERROR_STREAM("Error while reading" << error.message());
-            throw std::system_error(error);
-        }
-    }
-
-    void UARTDriverHW::uart_read_chunk(char delim, std::chrono::steady_clock::duration timeout) {
-        boost::system::error_code error;
-        std::size_t n_transfered;
-        boost::asio::async_read_until(port, boost::asio::dynamic_buffer(input_buffer),
-        [](iterator begin, iterator end)
-        {
-
+        // 3rd parameter could be boost::asio::transfer_at_least or boost::asio::transfer_all?
+        boost::asio::async_read(port, boost::asio::dynamic_buffer(input_buffer),
+        [=] (const boost::system::error_code& error, std::size_t bytes_transferred) -> std::size_t {
+            for(size_t i = 0; i < bytes_transferred; i++) { // i is number of leading zero
+                if(input_buffer[i] > 0) { // Detect a character
+                    return (i + n_bytes - bytes_transferred) > 0 ? 
+                    i + n_bytes - bytes_transferred : 0;
+                }
+            }
         },
         [&](const boost::system::error_code& res_error, std::size_t bytes_transferred){
-            error = res_error;
-            n_transfered = bytes_transferred;
-        });
+             error = res_error;
+             n_transfered = bytes_transferred;
+        }
+        );
         run(timeout);
         if(error) {
             ROS_ERROR_STREAM("Error while reading" << error.message());

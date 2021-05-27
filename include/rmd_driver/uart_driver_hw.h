@@ -12,8 +12,9 @@ namespace rmd_driver_hardware_interface{
         void write() override;
 
     private:
-        void uart_read_amount(size_t n_bytes, std::chrono::steady_clock::duration timeout);
-        void uart_read_until(char delim, std::chrono::steady_clock::duration timeout);
+        // void uart_read_amount(size_t n_bytes, std::chrono::steady_clock::duration timeout);
+        // void uart_read_until(char delim, std::chrono::steady_clock::duration timeout);
+        void uart_read_chunk(size_t n_bytes, std::chrono::steady_clock::duration timeout);
         void uart_write(std::vector<uint8_t> &message, std::chrono::steady_clock::duration timeout);
         void run(std::chrono::steady_clock::duration timeout) override;
 

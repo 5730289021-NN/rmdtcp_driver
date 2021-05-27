@@ -2,8 +2,12 @@
 #include <cstdint>
 #include <vector>
 
-#define CHECKSUM_POS_RES_ZO 216
-#define CHECKSUM_CMD_RES_ZO 231
+#define CHECKSUM_POS_HEADER_RES_ZO 216
+#define CHECKSUM_CMD_HEADER_RES_ZO 231
+
+#define AMOUNT_POS_FRAME_RES 14
+#define AMOUNT_CMD_FRAME_RES 8 
+
 #define AMOUNT_POS_DATAFRAME_READ 9 //Including checksum 
 #define AMOUNT_CMD_DATAFRAME_WRITE 8 //Including checksum 
 
