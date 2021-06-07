@@ -29,16 +29,15 @@ namespace rmd_driver_hardware_interface
         if(port.is_open()) {
             // Send a multiloop position read request
             uart_write(req_ang_left_frame, std::chrono::milliseconds(100)); // Write a position read request
-            // Seperate to 2 Reading:
-            // 1. Read until known checksum header match
-            ROS_INFO("Delim %x", CHECKSUM_POS_HEADER_RES_ZO + LEFT_WHEEL_ID);
             uart_read_chunk(AMOUNT_POS_FRAME_RES, std::chrono::milliseconds(100));
             pos[0] = codec.decode_position_response(LEFT_WHEEL_ID, input_buffer);
+            input_buffer.clear();
 
             uart_write(req_ang_right_frame, std::chrono::milliseconds(100)); // Write a position read request
             // uart_read_until(CHECKSUM_POS_RES_ZO + RIGHT_WHEEL_ID, std::chrono::milliseconds(100));
-            // uart_read_amount(14, std::chrono::milliseconds(100)); // data is pushed into input_buffer
+            uart_read_chunk(AMOUNT_POS_FRAME_RES, std::chrono::milliseconds(100));
             pos[1] = codec.decode_position_response(RIGHT_WHEEL_ID, input_buffer);
+            input_buffer.clear();
 
         } else {
             ROS_ERROR("Port is not opened yet");
@@ -56,24 +55,35 @@ namespace rmd_driver_hardware_interface
         std::vector<uint8_t> req_spd_cmd_frame_left = codec.encode_command_request(LEFT_WHEEL_ID, cmd[0]);
         std::vector<uint8_t> req_spd_cmd_frame_right = codec.encode_command_request(RIGHT_WHEEL_ID, cmd[1]);
 
-        uart_write(req_spd_cmd_frame_left, std::chrono::milliseconds(100));
-        uart_write(req_spd_cmd_frame_right, std::chrono::milliseconds(100));
+        if(port.is_open()) {
+            uart_write(req_spd_cmd_frame_left, std::chrono::milliseconds(100));
+            uart_read_chunk(AMOUNT_CMD_FRAME_RES, std::chrono::milliseconds(100));
+            input_buffer.clear();
+
+            uart_write(req_spd_cmd_frame_right, std::chrono::milliseconds(100));
+            uart_read_chunk(AMOUNT_CMD_FRAME_RES, std::chrono::milliseconds(100));
+            input_buffer.clear();
+        } else {
+            ROS_ERROR("Port is not opened yet");
+            throw "Port is not opened yet";
+        }
     }
 
     // Read n-byte of chunk excluding leading zero
     void UARTDriverHW::uart_read_chunk(size_t n_bytes, std::chrono::steady_clock::duration timeout) {
         boost::system::error_code error;
         std::size_t n_transfered;
-        // 3rd parameter could be boost::asio::transfer_at_least or boost::asio::transfer_all?
-        boost::asio::async_read(port, boost::asio::dynamic_buffer(input_buffer),
-        [=] (const boost::system::error_code& error, std::size_t bytes_transferred) -> std::size_t {
-            for(size_t i = 0; i < bytes_transferred; i++) { // i is number of leading zero
-                if(input_buffer[i] > 0) { // Detect a character
-                    return (i + n_bytes - bytes_transferred) > 0 ? 
-                    i + n_bytes - bytes_transferred : 0;
-                }
-            }
-        },
+        // 3rd parameter could be boost::asio::transfer_at_least
+        boost::asio::async_read(port, boost::asio::dynamic_buffer(input_buffer), boost::asio::transfer_at_least(14),
+        // [=] (const boost::system::error_code& error, std::size_t bytes_transferred) -> std::size_t {
+        //     for(size_t i = 0; i < bytes_transferred; i++) { // i is number of leading zero
+        //         if(input_buffer[i] > 0) { // Detect a character
+        //             return (i + n_bytes - bytes_transferred) > 0 ? 
+        //             i + n_bytes - bytes_transferred : 0;
+        //         }
+        //     }
+        //     return n_bytes;
+        // },
         [&](const boost::system::error_code& res_error, std::size_t bytes_transferred){
              error = res_error;
              n_transfered = bytes_transferred;
