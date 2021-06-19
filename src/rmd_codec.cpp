@@ -19,7 +19,16 @@ namespace rmd_driver_hardware_interface
             static_cast<uint8_t>(0x00),
             static_cast<uint8_t>(0x00)
         };
+        //vel is in rad/s, require to convert to (degree/minute) then multiply by 10
+        //    rad/s                     dpm          
+        //vel ----> [ x180 / PI x 60 ] ----> [ x10 ] ---> cmd
+        // int32_t speed_control_left = cmd[0] * 180 * 60 * 10 / M_PI;
+        // int32_t speed_control_right = cmd[1] * 180 * 60 * 10 / M_PI;
         int32_t speed_command = cmd * 180 * 60 * 10 / M_PI; //raw
+
+        ROS_INFO("Sending Speed: %f, %d", cmd, speed_command);
+
+
         request_frame[5] = *(uint8_t *)(&speed_command);
         request_frame[6] = *((uint8_t *)(&speed_command) + 1);
         request_frame[7] = *((uint8_t *)(&speed_command) + 2);

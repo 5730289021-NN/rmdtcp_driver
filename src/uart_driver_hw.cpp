@@ -30,13 +30,12 @@ namespace rmd_driver_hardware_interface
             // Send a multiloop position read request
             uart_write(req_ang_left_frame, std::chrono::milliseconds(100)); // Write a position read request
             uart_read_chunk(AMOUNT_POS_FRAME_RES, std::chrono::milliseconds(100));
-            pos[0] = codec.decode_position_response(LEFT_WHEEL_ID, input_buffer);
+            pos[1] = codec.decode_position_response(LEFT_WHEEL_ID, input_buffer);
             input_buffer.clear();
-
 
             uart_write(req_ang_right_frame, std::chrono::milliseconds(100)); // Write a position read request
             uart_read_chunk(AMOUNT_POS_FRAME_RES, std::chrono::milliseconds(100));
-            pos[1] = codec.decode_position_response(RIGHT_WHEEL_ID, input_buffer);
+            pos[2] = codec.decode_position_response(RIGHT_WHEEL_ID, input_buffer);
             input_buffer.clear();
 
         } else {
@@ -46,14 +45,8 @@ namespace rmd_driver_hardware_interface
     }
 
     void UARTDriverHW::write(){
-        //vel is in rad/s, require to convert to (degree/minute) then multiply by 10
-        //    rad/s                     dpm          
-        //vel ----> [ x180 / PI x 60 ] ----> [ x10 ] ---> cmd
-        // int32_t speed_control_left = cmd[0] * 180 * 60 * 10 / M_PI;
-        // int32_t speed_control_right = cmd[1] * 180 * 60 * 10 / M_PI;
-        
-        std::vector<uint8_t> req_spd_cmd_frame_left = codec.encode_command_request(LEFT_WHEEL_ID, cmd[0]);
-        std::vector<uint8_t> req_spd_cmd_frame_right = codec.encode_command_request(RIGHT_WHEEL_ID, cmd[1]);
+        std::vector<uint8_t> req_spd_cmd_frame_left = codec.encode_command_request(LEFT_WHEEL_ID, cmd[1]);
+        std::vector<uint8_t> req_spd_cmd_frame_right = codec.encode_command_request(RIGHT_WHEEL_ID, cmd[2]);
 
         if(port.is_open()) {
             uart_write(req_spd_cmd_frame_left, std::chrono::milliseconds(100));
@@ -77,15 +70,6 @@ namespace rmd_driver_hardware_interface
         std::size_t n_transfered;
         // 3rd parameter could be boost::asio::transfer_at_least
         boost::asio::async_read(port, boost::asio::dynamic_buffer(input_buffer), boost::asio::transfer_at_least(n_bytes),
-        // [=] (const boost::system::error_code& error, std::size_t bytes_transferred) -> std::size_t {
-        //     for(size_t i = 0; i < bytes_transferred; i++) { // i is number of leading zero
-        //         if(input_buffer[i] > 0) { // Detect a character
-        //             return (i + n_bytes - bytes_transferred) > 0 ? 
-        //             i + n_bytes - bytes_transferred : 0;
-        //         }
-        //     }
-        //     return n_bytes;
-        // },
         [&](const boost::system::error_code& res_error, std::size_t bytes_transferred){
              error = res_error;
              n_transfered = bytes_transferred;

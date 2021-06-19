@@ -20,11 +20,11 @@ int main(int argc, char **argv)
   int baud = 115200;
   ROS_INFO("Initializing \"UART\" Mode from device %s with baudrate %d", dev.c_str(), baud);
   driver = new rmd_driver_hardware_interface::UARTDriverHW(dev, baud);
-  #elif defined(USE_TCP)
-  std::string ip = "192.168.16.21"
-  int port = 9001;
-  ROS_INFO("Initializing \"TCP\" Mode from IP %s with port %d", ip.c_str(), port);
-  driver = new rmd_driver_hardware_interface::TCPDriverHW(ip, port);
+//   #elif defined(USE_TCP)
+//   std::string ip = "192.168.16.21"
+//   int port = 9001;
+//   ROS_INFO("Initializing \"TCP\" Mode from IP %s with port %d", ip.c_str(), port);
+//   driver = new rmd_driver_hardware_interface::TCPDriverHW(ip, port);
   #endif
   ROS_INFO("Initialization successfully");
 
