@@ -54,7 +54,7 @@ namespace rmd_driver_hardware_interface
         // int32_t speed_control_left = cmd[0] * 180 * 60 * 10 / M_PI;
         // int32_t speed_control_right = cmd[1] * 180 * 60 * 10 / M_PI;
         
-        std::vector<uint8_t> req_spd_cmd_frame_left = codec.encode_command_request(LEFT_WHEEL_ID, cmd[0]);
+        std::vector<uint8_t> req_spd_cmd_frame_left = codec.encode_command_request(LEFT_WHEEL_ID, 0);
         std::vector<uint8_t> req_spd_cmd_frame_right = codec.encode_command_request(RIGHT_WHEEL_ID, cmd[1]);
 
         tcp_write(req_spd_cmd_frame_left, std::chrono::milliseconds(100));

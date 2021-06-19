@@ -30,7 +30,7 @@ namespace rmd_driver_hardware_interface
             // Send a multiloop position read request
             uart_write(req_ang_left_frame, std::chrono::milliseconds(100)); // Write a position read request
             uart_read_chunk(AMOUNT_POS_FRAME_RES, std::chrono::milliseconds(100));
-            pos[1] = codec.decode_position_response(LEFT_WHEEL_ID, input_buffer);
+            pos[1] = -codec.decode_position_response(LEFT_WHEEL_ID, input_buffer);
             input_buffer.clear();
 
             uart_write(req_ang_right_frame, std::chrono::milliseconds(100)); // Write a position read request
@@ -45,7 +45,7 @@ namespace rmd_driver_hardware_interface
     }
 
     void UARTDriverHW::write(){
-        std::vector<uint8_t> req_spd_cmd_frame_left = codec.encode_command_request(LEFT_WHEEL_ID, cmd[1]);
+        std::vector<uint8_t> req_spd_cmd_frame_left = codec.encode_command_request(LEFT_WHEEL_ID, -cmd[1]);
         std::vector<uint8_t> req_spd_cmd_frame_right = codec.encode_command_request(RIGHT_WHEEL_ID, cmd[2]);
 
         if(port.is_open()) {

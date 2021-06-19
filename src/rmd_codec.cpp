@@ -19,6 +19,7 @@ namespace rmd_driver_hardware_interface
             static_cast<uint8_t>(0x00),
             static_cast<uint8_t>(0x00)
         };
+        // Checked
         //vel is in rad/s, require to convert to (degree/minute) then multiply by 10
         //    rad/s                     dpm          
         //vel ----> [ x180 / PI x 60 ] ----> [ x10 ] ---> cmd
@@ -85,7 +86,7 @@ namespace rmd_driver_hardware_interface
                 *((uint8_t *)(&motor_angle)+6) = input_buffer[11];
                 *((uint8_t *)(&motor_angle)+7) = input_buffer[12];
 
-                return motor_angle / 216000.0 * 2 * M_PI;
+                return motor_angle / 216000.0 * M_PI; //Checked
             }
         }
         throw std::runtime_error("Unable to track first byte");
