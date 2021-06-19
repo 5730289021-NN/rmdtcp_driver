@@ -33,8 +33,8 @@ namespace rmd_driver_hardware_interface
             pos[0] = codec.decode_position_response(LEFT_WHEEL_ID, input_buffer);
             input_buffer.clear();
 
+
             uart_write(req_ang_right_frame, std::chrono::milliseconds(100)); // Write a position read request
-            // uart_read_until(CHECKSUM_POS_RES_ZO + RIGHT_WHEEL_ID, std::chrono::milliseconds(100));
             uart_read_chunk(AMOUNT_POS_FRAME_RES, std::chrono::milliseconds(100));
             pos[1] = codec.decode_position_response(RIGHT_WHEEL_ID, input_buffer);
             input_buffer.clear();
@@ -57,11 +57,13 @@ namespace rmd_driver_hardware_interface
 
         if(port.is_open()) {
             uart_write(req_spd_cmd_frame_left, std::chrono::milliseconds(100));
-            uart_read_chunk(AMOUNT_CMD_FRAME_RES, std::chrono::milliseconds(100));
+            uart_read_chunk(AMOUNT_CMD_FRAME_RES, std::chrono::milliseconds(100));          
+            codec.decode_command_response(LEFT_WHEEL_ID, input_buffer);
             input_buffer.clear();
 
             uart_write(req_spd_cmd_frame_right, std::chrono::milliseconds(100));
             uart_read_chunk(AMOUNT_CMD_FRAME_RES, std::chrono::milliseconds(100));
+            codec.decode_command_response(RIGHT_WHEEL_ID, input_buffer);
             input_buffer.clear();
         } else {
             ROS_ERROR("Port is not opened yet");
@@ -74,7 +76,7 @@ namespace rmd_driver_hardware_interface
         boost::system::error_code error;
         std::size_t n_transfered;
         // 3rd parameter could be boost::asio::transfer_at_least
-        boost::asio::async_read(port, boost::asio::dynamic_buffer(input_buffer), boost::asio::transfer_at_least(14),
+        boost::asio::async_read(port, boost::asio::dynamic_buffer(input_buffer), boost::asio::transfer_at_least(n_bytes),
         // [=] (const boost::system::error_code& error, std::size_t bytes_transferred) -> std::size_t {
         //     for(size_t i = 0; i < bytes_transferred; i++) { // i is number of leading zero
         //         if(input_buffer[i] > 0) { // Detect a character
@@ -114,6 +116,10 @@ namespace rmd_driver_hardware_interface
         // In case of timeout
         if(!io_context.stopped()) {
             ROS_ERROR("Operation Timeout, Probably no data back drom device.");
+            ROS_ERROR("Current Buffer (Size = %ld) is :", input_buffer.size());
+            for(size_t i = 0; i < input_buffer.size(); i++) {
+                ROS_ERROR("%x", input_buffer[i]);
+            }
             port.close();
             io_context.run();
         }

@@ -33,16 +33,16 @@ int main(int argc, char **argv)
   spinner.start();
 
   ros::Time prev_time = ros::Time::now();
-  ros::Rate rate(10.0);
+  ros::Rate rate(20.0);
 
   while (ros::ok())
   {
     const ros::Time time = ros::Time::now();
     const ros::Duration period = time - prev_time;
-    ROS_INFO("Read");
+    //ROS_INFO("Read");
     driver->read();
     cm.update(time, period);
-    ROS_INFO("Write");
+    //ROS_INFO("Write");
     driver->write();
     rate.sleep();
   }
