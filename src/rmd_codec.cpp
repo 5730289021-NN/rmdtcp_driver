@@ -27,7 +27,7 @@ namespace rmd_driver_hardware_interface
         // int32_t speed_control_right = cmd[1] * 180 * 60 * 10 / M_PI;
         int32_t speed_command = cmd * 180 * 60 * 10 / M_PI; //raw
 
-        ROS_INFO("Sending Speed: %f, %d", cmd, speed_command);
+        //ROS_INFO("Sending Speed: %f, %d", cmd, speed_command);
 
 
         request_frame[5] = *(uint8_t *)(&speed_command);
